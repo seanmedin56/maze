@@ -29,6 +29,12 @@ DEFAULT_COLOR = (255, 255, 255) #the background color of the maze
 WALL_COLOR = (0, 0, 0)
 PATH_COLOR = (0, 255, 0)
 
+#constancts for probability of adding edges 
+
+SUCCESS = 9
+BASE_LINE = 270
+DIVIDER = 3
+
 #class for representing the x and y coordinates of each square in the grid
 
 class Point:
@@ -46,14 +52,17 @@ class Point:
         
     def __cmp__(self, other):
         return self.x + self.y - other.x - other.y
-        
+ 
+
+       
 #returns the distance squared between two Point objects
         
 def distance_squared(start, end):
     diff_x = start.x - end.x
     diff_y = start.y - end.y
     return diff_x**2 + diff_y**2
-    
+ 
+   
 #arguments: (int) height: the height in pixels of the desired maze
 #           (int) width: the width in pixels of the desired maze
 #           (int) side: the length in pixels of each square in the grid for the maze
@@ -78,6 +87,8 @@ def create_maze(height, width, side):
     exit = set_exit(pix)
     set_boundaries(pix)
     create_path(pix, entrance, exit)
+    add_walls(pix)
+    clear_color(pix, PATH_COLOR, DEFAULT_COLOR)
     image.save("maze.jpg")
 
     
@@ -102,7 +113,7 @@ def set_entrance(pix):
     else:
         place = random.randint(0, HEIGHT / SIDE - 1)
         entrance = Point(WIDTH / SIDE - 1, place)
-    set_edge(pix, entrance, direction, ENTRANCE_COLOR)    
+    set_square(pix, entrance, direction, ENTRANCE_COLOR)    
     return entrance
  
    
@@ -130,7 +141,7 @@ def set_exit(pix):
     if is_occupied(pix, exit, direction):
         return set_exit(pix)
     else:
-        set_edge(pix, exit, direction, EXIT_COLOR)    
+        set_square(pix, exit, direction, EXIT_COLOR)    
         return exit
 
 
@@ -185,8 +196,27 @@ def create_path(pix, start, target):
                 loc = next_pt(loc, i)
                 break
     
-        
-                
+   
+#helper function for create_maze
+#iterates through each square in the grid and adds edges at random
+   
+#arguments: pix: 2d representation of the pixels of the maze
+     
+def add_walls(pix):
+    width = WIDTH / SIDE
+    height = HEIGHT / SIDE
+    for i in range(width):
+        for j in range(height):
+            pt = Point(i, j)
+            options = []
+            for a in range(4):
+                if not is_occupied(pix, pt, a):
+                    options.append(a)
+            for b in range(len(options)):
+                choice = random.randint(1, BASE_LINE / DIVIDER**b)
+                if choice <= SUCCESS:
+                    set_edge(pix, pt, options[b], WALL_COLOR)
+            
  
 #helper function to create_maze
 #sets the side of the square in direction direction at location pt to the given color
@@ -229,7 +259,62 @@ def set_edge(pix, pt, direction, color):
             if right + 1 < WIDTH:
                 pix[right + 1, bottom] = color
             bottom += 1
-            
+ 
+
+#helper function for create_maze
+#sets an edge and colors in the entire square (except for the other edges)
+
+#arguments:        pix: 2d pixel representaiton of the maze
+#          (Point) pt: the square to be colored in
+#          (int)   direction: indicates the edge to be colored in
+#          (tuple) color: the rgb color the square should be
+
+def set_square(pix, pt, direction, color):
+    if direction == UP:
+        top = (pt.y + 1) * SIDE - 1
+        left = max(pt.x * SIDE - 1, 0)
+        while left <= min((pt.x + 1) * SIDE, WIDTH - 1):
+            if top + 1 < HEIGHT:
+                pix[left, top + 1] = color
+            top2 = top
+            while top2 > pt.y * SIDE:
+                pix[left, top2] = color
+                top2 -= 1
+            left += 1
+    elif direction == DOWN:
+        bottom = pt.y * SIDE
+        left = max(pt.x * SIDE - 1, 0)
+        while left <= min((pt.x + 1) * SIDE, WIDTH - 1):
+            if bottom - 1 >= 0:
+                pix[left, bottom - 1] = color
+            bottom2 = bottom
+            while bottom2 < (pt.y + 1) * SIDE - 1:
+                pix[left, bottom2] = color
+                bottom2 += 1
+            left += 1
+    elif direction == LEFT:
+        left = pt.x * SIDE
+        bottom = max(pt.y * SIDE - 1, 0)
+        while bottom <= min((pt.y + 1) * SIDE, HEIGHT - 1):
+            if left - 1 >= 0:
+                pix[left - 1, bottom] = color
+            left2 = left
+            while left2 < (pt.x + 1) * SIDE - 1:
+                pix[left2, bottom] = color
+                left2 += 1
+            bottom += 1
+    else:
+        right = (pt.x + 1) * SIDE - 1
+        bottom = max(pt.y * SIDE - 1, 0)
+        while bottom <= min((pt.y + 1) * SIDE, HEIGHT - 1):
+            if right + 1 < WIDTH:
+                pix[right + 1, bottom] = color
+            right2 = right
+            while right2 > pt.x * SIDE:
+                pix[right2, bottom] = color
+                right2 -= 1
+            bottom += 1               
+
 
 #helper function to create_maze
 #determines whether there is already an edge at the given location
@@ -263,6 +348,16 @@ def next_pt(pt, direction):
         return Point(pt.x - 1, pt.y)
     else:
         return Point(pt.x + 1, pt.y)
+        
+
+#helper function for create_maze
+#replaces all occurrences of old_color in pix with new_color
+        
+def clear_color(pix, old_color, new_color):
+    for i in range(WIDTH):
+        for j in range(HEIGHT):
+            if pix[i, j] == old_color:
+                pix[i, j] = new_color
 
     
     

@@ -7,6 +7,7 @@ Created on Wed Dec 21 17:42:31 2016
 from PIL import Image
 import random
 import math
+import Queue
 
 #constants representing the directions/four sides of each square 
 
@@ -27,7 +28,12 @@ ENTRANCE_COLOR = (0, 0, 255)
 EXIT_COLOR = (255, 0, 0)
 DEFAULT_COLOR = (255, 255, 255) #the background color of the maze
 WALL_COLOR = (0, 0, 0)
-PATH_COLOR = (0, 255, 0)
+PATH_COLOR = (0, 1, 0)
+
+#constants for determining guarantteed path
+
+SAME_DIR_MULT = 3
+DIST_MULT = 2
 
 #constancts for probability of adding edges 
 
@@ -52,6 +58,9 @@ class Point:
         
     def __cmp__(self, other):
         return self.x + self.y - other.x - other.y
+        
+    def __hash__(self):
+        return self.x * self.y
  
 
        
@@ -63,8 +72,8 @@ def distance_squared(start, end):
     return diff_x**2 + diff_y**2
  
    
-#arguments: (int) height: the height in pixels of the desired maze
-#           (int) width: the width in pixels of the desired maze
+#arguments: (int) height: the height in grid squares of the desired maze
+#           (int) width: the width in grid squares of the desired maze
 #           (int) side: the length in pixels of each square in the grid for the maze
 #                 (this determines how wide the paths in the maze will be)
 #
@@ -75,20 +84,18 @@ def create_maze(height, width, side):
     if side < 4:
         print "Grid units must be greater than or equal to 4 pixels"
         return
-    image = Image.new("RGB", (width, height), "white")
-    pix = image.load()
     global HEIGHT
-    HEIGHT = height / side * side
+    HEIGHT = height * side
     global WIDTH
-    WIDTH = width / side * side
+    WIDTH = width * side
     global SIDE
     SIDE = side
+    image = Image.new("RGB", (WIDTH, HEIGHT), "white")
+    pix = image.load()
     entrance = set_entrance(pix)
     exit = set_exit(pix)
     set_boundaries(pix)
-    create_path(pix, entrance, exit)
-    add_walls(pix)
-    clear_color(pix, PATH_COLOR, DEFAULT_COLOR)
+    add_walls(pix, entrance, exit)
     image.save("maze.jpg")
 
     
@@ -166,43 +173,14 @@ def set_boundaries(pix):
         if not is_occupied(pix, pt, UP):
             set_edge(pix, pt, UP, WALL_COLOR)
 
-
-#helper function for create_maze
-#marks down a path that is a guarantteed way to solve the maze
-
-#arguments:        pix: 2d representation of the pixels of the maze
-#          (Point) start: the entrance to the maze
-#          (Point) target: the exit to the maze
-        
-def create_path(pix, start, target):
-    prevDir = -1
-    loc = start
-    while (loc != target):
-        dic = {}
-        total = 0
-        for i in range(4):
-            if not is_occupied(pix, loc, i):
-                dic[i] = math.ceil(HEIGHT**2 / 
-                        (distance_squared(next_pt(loc, i), target) + 1))
-                if i == prevDir:
-                    dic[i] *= 4
-                total += dic[i]
-            else:
-                dic[i] = 0
-        choice = random.randint(0, total - 1)
-        for i in xrange(4):
-            if choice < dic[i]:
-                set_edge(pix, loc, i, PATH_COLOR)
-                loc = next_pt(loc, i)
-                break
-    
    
 #helper function for create_maze
 #iterates through each square in the grid and adds edges at random
+#before adding an edge, it checks to see if the maze is still solvable
    
 #arguments: pix: 2d representation of the pixels of the maze
      
-def add_walls(pix):
+def add_walls(pix, start, end):
     width = WIDTH / SIDE
     height = HEIGHT / SIDE
     for i in range(width):
@@ -215,7 +193,12 @@ def add_walls(pix):
             for b in range(len(options)):
                 choice = random.randint(1, BASE_LINE / DIVIDER**b)
                 if choice <= SUCCESS:
-                    set_edge(pix, pt, options[b], WALL_COLOR)
+                    choice2 = random.randint(0, len(options) - 1)
+                    set_edge(pix, pt, options[choice2], WALL_COLOR)
+                    if not is_connected(pix, start, end):
+                        set_edge(pix, pt, options[choice2], DEFAULT_COLOR)
+                    del options[choice2]
+                        
             
  
 #helper function to create_maze
@@ -348,16 +331,33 @@ def next_pt(pt, direction):
         return Point(pt.x - 1, pt.y)
     else:
         return Point(pt.x + 1, pt.y)
-        
+
 
 #helper function for create_maze
-#replaces all occurrences of old_color in pix with new_color
-        
-def clear_color(pix, old_color, new_color):
-    for i in range(WIDTH):
-        for j in range(HEIGHT):
-            if pix[i, j] == old_color:
-                pix[i, j] = new_color
+#returns true if a path from Point start to Point end exists
+#returns false otherwise
+
+def is_connected(pix, start, end):
+    a = 0
+    lst = Queue.PriorityQueue()
+    st = set()
+    st.add(start)
+    for i in range(4):
+        if not is_occupied(pix, start, i):
+            nxt = next_pt(start, i)
+            lst.put((distance_squared(nxt, end), nxt))
+            st.add(nxt)
+    while not lst.empty():
+        loc = lst.get()[1]
+        if loc == end:
+            return True     
+        for i in range(4):
+            nxt = next_pt(loc, i)
+            if not is_occupied(pix, loc, i) and nxt not in st:
+                lst.put((distance_squared(nxt, end), nxt))
+                st.add(nxt)
+        a +=1
+    return False
 
     
     

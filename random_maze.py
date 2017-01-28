@@ -22,7 +22,7 @@ HEIGHT = 0    #the adjusted height of the maze in pixels
 WIDTH = 0     #the adjusted width of the maze in pixels
 SIDE = 0      #the side length in pixels of each square
 
-#constants representing the color scheme
+#constants representing the color scheme (THESE MUST BE DIFFERENT FROM EACH OTHER)
 
 ENTRANCE_COLOR = (0, 0, 255)
 EXIT_COLOR = (255, 0, 0)
@@ -35,7 +35,7 @@ PATH_COLOR = (0, 1, 0)
 SAME_DIR_MULT = 3
 DIST_MULT = 2
 
-#constancts for probability of adding edges 
+#constants for probability of adding edges 
 
 SUCCESS = 9
 BASE_LINE = 270
@@ -62,7 +62,6 @@ class Point:
     def __hash__(self):
         return self.x * self.y
  
-
        
 #returns the distance squared between two Point objects
         
@@ -90,7 +89,7 @@ def create_maze(height, width, side):
     WIDTH = width * side
     global SIDE
     SIDE = side
-    image = Image.new("RGB", (WIDTH, HEIGHT), "white")
+    image = Image.new("RGB", (WIDTH, HEIGHT), "#ffffff")
     pix = image.load()
     entrance = set_entrance(pix)
     exit = set_exit(pix)
@@ -199,7 +198,6 @@ def add_walls(pix, start, end):
                         set_edge(pix, pt, options[choice2], DEFAULT_COLOR)
                     del options[choice2]
                         
-            
  
 #helper function to create_maze
 #sets the side of the square in direction direction at location pt to the given color
@@ -212,32 +210,32 @@ def add_walls(pix, start, end):
 def set_edge(pix, pt, direction, color):
     if direction == UP:
         top = (pt.y + 1) * SIDE - 1
-        left = max(pt.x * SIDE - 1, 0)
-        while left <= min((pt.x + 1) * SIDE, WIDTH - 1):
+        left = pt.x * SIDE
+        while left < (pt.x + 1) * SIDE:
             pix[left, top] = color
             if top + 1 < HEIGHT:
                 pix[left, top + 1] = color
             left += 1
     elif direction == DOWN:
         bottom = pt.y * SIDE
-        left = max(pt.x * SIDE - 1, 0)
-        while left <= min((pt.x + 1) * SIDE, WIDTH - 1):
+        left = pt.x * SIDE
+        while left < (pt.x + 1) * SIDE:
             pix[left, bottom] = color
             if bottom - 1 >= 0:
                 pix[left, bottom - 1] = color
             left += 1
     elif direction == LEFT:
         left = pt.x * SIDE
-        bottom = max(pt.y * SIDE - 1, 0)
-        while bottom <= min((pt.y + 1) * SIDE, HEIGHT - 1):
+        bottom = pt.y * SIDE
+        while bottom < (pt.y + 1) * SIDE:
             pix[left, bottom] = color
             if left - 1 >= 0:
                 pix[left - 1, bottom] = color
             bottom += 1
     else:
         right = (pt.x + 1) * SIDE - 1
-        bottom = max(pt.y * SIDE - 1, 0)
-        while bottom <= min((pt.y + 1) * SIDE, HEIGHT - 1):
+        bottom = pt.y * SIDE
+        while bottom < (pt.y + 1) * SIDE:
             pix[right, bottom] = color
             if right + 1 < WIDTH:
                 pix[right + 1, bottom] = color
@@ -254,44 +252,36 @@ def set_edge(pix, pt, direction, color):
 
 def set_square(pix, pt, direction, color):
     if direction == UP:
-        top = (pt.y + 1) * SIDE - 1
-        left = max(pt.x * SIDE - 1, 0)
-        while left <= min((pt.x + 1) * SIDE, WIDTH - 1):
-            if top + 1 < HEIGHT:
-                pix[left, top + 1] = color
+        top = (pt.y + 1) * SIDE - 2
+        left = pt.x * SIDE + 1
+        while left <= (pt.x + 1) * SIDE - 2:
             top2 = top
             while top2 > pt.y * SIDE:
                 pix[left, top2] = color
                 top2 -= 1
             left += 1
     elif direction == DOWN:
-        bottom = pt.y * SIDE
-        left = max(pt.x * SIDE - 1, 0)
-        while left <= min((pt.x + 1) * SIDE, WIDTH - 1):
-            if bottom - 1 >= 0:
-                pix[left, bottom - 1] = color
+        bottom = pt.y * SIDE + 1
+        left = pt.x * SIDE + 1
+        while left <= (pt.x + 1) * SIDE - 2:
             bottom2 = bottom
             while bottom2 < (pt.y + 1) * SIDE - 1:
                 pix[left, bottom2] = color
                 bottom2 += 1
             left += 1
     elif direction == LEFT:
-        left = pt.x * SIDE
-        bottom = max(pt.y * SIDE - 1, 0)
-        while bottom <= min((pt.y + 1) * SIDE, HEIGHT - 1):
-            if left - 1 >= 0:
-                pix[left - 1, bottom] = color
+        left = pt.x * SIDE + 1
+        bottom = pt.y * SIDE + 1
+        while bottom <= (pt.y + 1) * SIDE - 2:
             left2 = left
             while left2 < (pt.x + 1) * SIDE - 1:
                 pix[left2, bottom] = color
                 left2 += 1
             bottom += 1
     else:
-        right = (pt.x + 1) * SIDE - 1
-        bottom = max(pt.y * SIDE - 1, 0)
-        while bottom <= min((pt.y + 1) * SIDE, HEIGHT - 1):
-            if right + 1 < WIDTH:
-                pix[right + 1, bottom] = color
+        right = (pt.x + 1) * SIDE - 2
+        bottom = pt.y * SIDE + 1
+        while bottom <= (pt.y + 1) * SIDE - 2:
             right2 = right
             while right2 > pt.x * SIDE:
                 pix[right2, bottom] = color
